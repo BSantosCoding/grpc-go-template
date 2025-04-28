@@ -1,6 +1,6 @@
 # Go gRPC User Service Example
 
-A sample project demonstrating a gRPC API in Go for managing users. This project features a structured layout, PostgreSQL integration, database migrations using `golang-migrate`, Docker support, configuration via `.env` files, dependency injection, input validation, and integration tests.
+A sample project demonstrating a gRPC API in Go for managing users. This project features a structured layout, PostgreSQL integration, database migrations using `golang-migrate`, Docker support, configuration via `.env` files, dependency injection, and integration tests.
 
 ## Features
 
@@ -9,7 +9,6 @@ A sample project demonstrating a gRPC API in Go for managing users. This project
 - Database migrations managed by `golang-migrate`.
 - Configuration via `.env` files (`godotenv`).
 - Dependency Injection using a simple container pattern.
-- Input validation on API requests (server-side).
 - Docker and Docker Compose for containerized application and database.
 - Makefile (`makefile.mk`) for easy build, test, database, and Docker management tasks.
 - Integration tests using `testify/suite`.
