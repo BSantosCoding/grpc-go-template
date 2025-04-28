@@ -1,43 +1,45 @@
 # docker-compose.yml
-version: '3.8' # Use a recent version
+version: '3.8'
 
 services:
   # Go Application Service
   app:
     build:
-      context: . # Use the current directory for build context
-      dockerfile: Dockerfile # Specify the Dockerfile name
-    container_name: grpc_app_server
+      context: .
+      dockerfile: Dockerfile
+      target: development # <-- Target the development stage by default
+    container_name: grpc_app_server_dev # Optional: Keep dev name or change back
+    volumes: # <-- Mount host source code for hot-reloading
+      - .:/app
     ports:
-      - '50051:50051' # Map host port 50051 to container port 50051
+      - '50051:50051'
     env_file:
-      - .env # Load variables from .env file
+      - .env
     environment:
-      # Override PGHOST to use the service name 'db'
-      PGHOST: db
+      PGHOST: db # Connect to the db service name
       # Construct DATABASE_URL using variables loaded from .env
-      # The Go app will use this if set, otherwise it constructs from PG* vars
       DATABASE_URL: postgresql://${PGUSER}:${PGPASSWORD}@db:5432/${DBNAME}?sslmode=disable
     depends_on:
       db:
-        condition: service_healthy # Wait for db to be healthy before starting app
+        condition: service_healthy
+    # Explicitly run air (relies on CMD in the development stage of Dockerfile)
+    command: ['air']
     restart: unless-stopped
 
   # PostgreSQL Database Service
   db:
-    image: postgres:15-alpine # Use official Postgres image (Alpine version is smaller)
+    image: postgres:15-alpine
     container_name: grpc_postgres_db
     ports:
-      - '5432:5432' # Map host port 5432 to container port 5432 (for external tools/debugging)
+      - '5432:5432'
     env_file:
-      - .env # Load variables from .env file (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+      - .env
     environment:
-      # Map .env variables to required Postgres env vars
       POSTGRES_USER: ${PGUSER}
       POSTGRES_PASSWORD: ${PGPASSWORD}
       POSTGRES_DB: ${DBNAME}
     volumes:
-      - postgres-data:/var/lib/postgresql/data # Persist data using a named volume
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${PGUSER} -d ${DBNAME}']
       interval: 10s
@@ -46,4 +48,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres-data: # Define the named volume
+  postgres-data:
+  # Optional: Define named volume for caching
+  # go-build-cache:
