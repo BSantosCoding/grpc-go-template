@@ -36,11 +36,8 @@ func main() {
 	log.Printf("Connecting to gRPC server at %s", serverAddr)
 
 	// Establish connection once at the start
-	conn, err := grpc.Dial(serverAddr,
+	conn, err := grpc.NewClient(serverAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		// Consider removing grpc.WithBlock() for interactive client if startup time is an issue,
-		// but keep it for now to ensure connection before interaction.
-		grpc.WithBlock(),
 	)
 	if err != nil {
 		log.Fatalf("Did not connect: %v", err)
