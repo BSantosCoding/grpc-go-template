@@ -1,65 +1,178 @@
 package main
 
 import (
+	"bufio" // For reading user input
 	"context"
+	"fmt" // For printing menu and prompts
 	"log"
 	"os"
+	"strings" // For trimming input
 	"time"
 
-	// Import the generated protobuf code
-	userpb "github.com/BSantosCoding/grpc-go-example/gen/proto/user/v1"
+	userpb "github.com/BSantosCoding/grpc-go-example/gen/user/v1"
+	// "github.com/google/uuid" // No longer needed for generating random IDs here
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure" // For insecure connections (testing only)
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 const (
-	serverAddr    = "localhost:50051" // Address of the gRPC server
-	defaultName   = "World"
-	requestTimeout = 5 * time.Second
+	serverAddr     = "localhost:50051"
+	requestTimeout = 15 * time.Second
 )
 
-func main() {
-	// Determine the name to greet from command-line arguments
-	name := defaultName
-	if len(os.Args) > 1 {
-		name = os.Args[1]
+// Helper function to read trimmed string input from the user
+func readInput(reader *bufio.Reader, prompt string) (string, error) {
+	fmt.Print(prompt)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
 	}
+	return strings.TrimSpace(input), nil
+}
 
+func main() {
 	log.Printf("Connecting to gRPC server at %s", serverAddr)
 
-	// Set up a connection to the server.
-	// grpc.WithTransportCredentials(insecure.NewCredentials()) is used for simplicity.
-	// In production, use proper TLS credentials!
-	// grpc.WithBlock() makes the connection attempt synchronous and fail fast if unavailable.
+	// Establish connection once at the start
 	conn, err := grpc.Dial(serverAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(), // Block until connection is established or fails
+		// Consider removing grpc.WithBlock() for interactive client if startup time is an issue,
+		// but keep it for now to ensure connection before interaction.
+		grpc.WithBlock(),
 	)
 	if err != nil {
 		log.Fatalf("Did not connect: %v", err)
 	}
-	defer conn.Close() // Ensure the connection is closed when main function exits
+	// Defer closing the connection until the main function exits
+	defer conn.Close()
 
 	log.Println("Connection established.")
 
-	// Create a client stub for the User service
+	// Create the client stub once
 	c := userpb.NewUserServiceClient(conn)
+	// Create a reader for user input
+	reader := bufio.NewReader(os.Stdin)
 
-	// Prepare the request
-	req := &userpb.SayHelloRequest{Name: name}
+	// --- Interactive Loop ---
+	for {
+		// Print Menu
+		fmt.Println("\n--- User Service Client ---")
+		fmt.Println("1. Create User")
+		fmt.Println("2. Get User by ID")
+		fmt.Println("3. List All Users")
+		fmt.Println("q. Quit")
+		fmt.Println("---------------------------")
 
-	// Set a timeout for the RPC call
-	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	defer cancel() // Ensure the context resources are released
+		choice, err := readInput(reader, "Enter choice: ")
+		if err != nil {
+			log.Printf("Error reading input: %v. Exiting.", err)
+			return
+		}
 
-	// Contact the server and print out its response.
-	log.Printf("Sending SayHello request with name: %s", name)
-	res, err := c.SayHello(ctx, req)
-	if err != nil {
-		log.Fatalf("Could not greet: %v", err)
-	}
+		// Create a new context with timeout for each request inside the loop
+		ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 
-	log.Printf("Greeting received: %s", res.GetMessage())
+		switch choice {
+		case "1":
+			// --- Create User ---
+			userName, err := readInput(reader, "Enter name: ")
+			if err != nil {
+				log.Printf("Error reading name: %v", err)
+				cancel() // Cancel context if input fails
+				continue // Go back to menu
+			}
+			userEmail, err := readInput(reader, "Enter email: ")
+			if err != nil {
+				log.Printf("Error reading email: %v", err)
+				cancel()
+				continue
+			}
+
+			if userName == "" || userEmail == "" {
+				log.Println("Name and Email cannot be empty.")
+				cancel()
+				continue
+			}
+
+			log.Printf("--- Calling CreateUser ---")
+			createRes, err := c.CreateUser(ctx, &userpb.CreateUserRequest{Name: userName, Email: userEmail})
+			if err != nil {
+				// Use log.Printf instead of log.Fatalf to keep client running
+				log.Printf("Could not create user: %v", err)
+			} else {
+				createdUser := createRes.GetUser()
+				log.Printf("User created successfully: ID=%s, Name=%s, Email=%s, CreatedAt=%s",
+					createdUser.GetId(),
+					createdUser.GetName(),
+					createdUser.GetEmail(),
+					createdUser.GetCreatedAt().AsTime().Local().Format(time.RFC1123))
+			}
+
+		case "2":
+			// --- Get User ---
+			userID, err := readInput(reader, "Enter user ID: ")
+			if err != nil {
+				log.Printf("Error reading user ID: %v", err)
+				cancel()
+				continue
+			}
+			if userID == "" {
+				log.Println("User ID cannot be empty.")
+				cancel()
+				continue
+			}
+
+			log.Printf("\n--- Calling GetUser ---")
+			getRes, err := c.GetUser(ctx, &userpb.GetUserRequest{Id: userID})
+			if err != nil {
+				if st, ok := status.FromError(err); ok {
+					log.Printf("GetUser failed with code %s: %s", st.Code(), st.Message())
+				} else {
+					log.Printf("GetUser failed: %v", err)
+				}
+			} else {
+				retrievedUser := getRes.GetUser()
+				log.Printf("User retrieved successfully: ID=%s, Name=%s, Email=%s, CreatedAt=%s",
+					retrievedUser.GetId(),
+					retrievedUser.GetName(),
+					retrievedUser.GetEmail(),
+					retrievedUser.GetCreatedAt().AsTime().Local().Format(time.RFC1123))
+			}
+
+		case "3":
+			// --- List Users ---
+			log.Printf("\n--- Calling ListUsers ---")
+			listRes, err := c.ListUsers(ctx, &userpb.ListUsersRequest{})
+			if err != nil {
+				log.Printf("Could not list users: %v", err)
+			} else {
+				log.Printf("Users list retrieved successfully:")
+				if len(listRes.GetUsers()) == 0 {
+					log.Println("  (No users found in database)")
+				}
+				for i, user := range listRes.GetUsers() {
+					log.Printf("  %d: ID=%s, Name=%s, Email=%s, CreatedAt=%s",
+						i+1,
+						user.GetId(),
+						user.GetName(),
+						user.GetEmail(),
+						user.GetCreatedAt().AsTime().Local().Format(time.RFC1123))
+				}
+			}
+
+		case "q", "Q":
+			// --- Quit ---
+			log.Println("Exiting client.")
+			cancel() // Cancel context before exiting
+			return   // Exit the main function
+
+		default:
+			log.Println("Invalid choice. Please try again.")
+		}
+
+		// Cancel the context for the current request after handling the case
+		cancel()
+	} // End of infinite loop
 }
-

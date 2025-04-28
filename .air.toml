@@ -1,0 +1,52 @@
+# .air.toml
+# Config file for Air hot-reloader: https://github.com/cosmtrek/air
+
+# Working directory, "." is the project root.
+root = "."
+# Temporary directory for builds.gitignore this!
+tmp_dir = "tmp"
+
+[build]
+# Command to build your server binary. Output to tmp dir.
+# Adjust the output path if your BIN_DIR is different, but tmp/ is standard for Air.
+cmd = "go build -o ./tmp/server ./cmd/server"
+# The final binary Air will run. Relative to 'root'.
+bin = "tmp/server"
+# Watch these file extensions.
+include_ext = ["go", "toml"]
+# Ignore these directories. Add others if needed (e.g., "web/node_modules").
+exclude_dir = ["tmp", "bin", "gen", "vendor", "db"]
+# Watch these directories.
+include_dir = ["cmd", "internal"]
+# Exclude specific files.
+exclude_file = []
+# Files/dirs to stop watching (e.g., if they rarely change).
+#exclude_unchanged = []
+# Follow symlinks when watching?
+follow_symlink = true
+# Log file for build errors.gitignore this!
+log = "air_errors.log"
+# Delay between file change detection and build (in ms).
+delay = 1000 # 1 second
+# Stop running the server if the build fails.
+stop_on_error = true
+# Send interrupt signal instead of kill (graceful shutdown if your server handles SIGINT).
+send_interrupt = true
+# Delay after sending interrupt before killing (if send_interrupt=true).
+kill_delay = 500 # ms
+
+[log]
+# Show log time.
+time = true
+
+[color]
+# Customize colors.
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+# Delete tmp directory on exit.
+clean_on_exit = true
+

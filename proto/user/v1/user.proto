@@ -3,6 +3,7 @@ syntax = "proto3";
 
 package user.v1;
 
+import "google/protobuf/timestamp.proto";
 // Update the Go package path for the generated code.
 option go_package = "github.com/BSantosCoding/grpc-go-example/gen/proto/user/v1;userpb";
 
@@ -22,7 +23,7 @@ message User {
   string id = 1;         // Unique identifier (e.g., UUID)
   string name = 2;
   string email = 3;
-  // google.protobuf.Timestamp created_at = 4; // Example: Add timestamps later if needed
+  google.protobuf.Timestamp created_at = 4;
 }
 
 // Request message for creating a user. ID is assigned by the server.

@@ -1,51 +1,86 @@
+// cmd/server/main.go
 package main
 
 import (
+	// "database/sql" // No longer needed directly here
+	// "context" // No longer needed directly here
+	// "fmt" // No longer needed directly here
 	"log"
 	"net"
 
-	// Import your internal server implementation
-	"github.com/BSantosCoding/grpc-go-example/internal/server"
+	// "os" // No longer needed directly here
+	// "time" // No longer needed directly here
 
-	// Import the generated protobuf code
-	userpb "github.com/BSantosCoding/grpc-go-example/gen/proto/user/v1"
+	// Adjust import paths if necessary
+	userpb "github.com/BSantosCoding/grpc-go-example/gen/user/v1"
+	// "github.com/BSantosCoding/grpc-go-example/internal/repository" // No longer needed directly here
+	// "github.com/BSantosCoding/grpc-go-example/internal/server" // No longer needed directly here
 
+	// "github.com/joho/godotenv" // No longer needed directly here
+	_ "github.com/lib/pq" // Driver (still needed for side effect)
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection" // Optional: for gRPC reflection
+	"google.golang.org/grpc/reflection"
 )
 
+// Constants moved to container.go or loaded into AppConfig
 const (
-	port = ":50051" // Port the server will listen on
+	port = ":50051"
+	dbDriver = "postgres" // Keep driver name if needed by buildDBConnection
+	dbHostEnvVar   = "PGHOST"
+	dbPortEnvVar   = "PGPORT"
+	dbUserEnvVar   = "PGUSER"
+	dbPasswordEnvVar = "PGPASSWORD"
+	dbNameEnvVar   = "DBNAME"
+	dbSourceEnvVar = "DATABASE_URL"
 )
+
+// getEnv moved to container.go
+// connectDB moved to container.go and renamed buildDBConnection
 
 func main() {
-	log.Printf("Starting gRPC server on port %s", port)
-
-	// Create a TCP listener on the specified port
-	lis, err := net.Listen("tcp", port)
+	// --- Load Configuration ---
+	config, err := LoadConfig()
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Create a new gRPC server instance
-	s := grpc.NewServer(
-	// Add server options here if needed (e.g., interceptors, TLS credentials)
+	// --- Build Container ---
+	container, err := NewContainer(config)
+	if err != nil {
+		log.Fatalf("Failed to build application container: %v", err)
+	}
+	// Ensure container resources are closed on exit
+	defer func() {
+		if err := container.Close(); err != nil {
+			log.Printf("Error closing container resources: %v", err)
+		}
+	}()
+
+
+	// --- Setup gRPC Server ---
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatalf("Failed to listen on port %s: %v", port, err)
+	}
+
+	// Create the main gRPC server instance
+	grpcServer := grpc.NewServer(
+		// Add server options like interceptors here if needed
 	)
 
-	// Create an instance of your User server implementation
-	userSrv := server.NewUserServer()
+	// Retrieve the fully built UserServer from the container
+	userSrv := container.UserServer
 
-	// Register your service implementation with the gRPC server
-	userpb.RegisterUserServiceServer(s, userSrv)
+	// Register the service implementation with the gRPC server
+	userpb.RegisterUserServiceServer(grpcServer, userSrv)
 
-	// Optional: Register reflection service on gRPC server.
-	// This allows tools like grpcurl to query the server's services.
-	reflection.Register(s)
+	// Optional: Register reflection service
+	reflection.Register(grpcServer)
 	log.Println("gRPC reflection registered.")
 
-	// Start serving requests
-	log.Printf("Server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+	// --- Start Server ---
+	log.Printf("gRPC server listening at %v", lis.Addr())
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve gRPC: %v", err)
 	}
 }

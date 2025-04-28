@@ -21,3 +21,10 @@ go.work
 /bin/
 /server
 /client
+
+# Air hot-reload files
+/tmp/
+air_errors.log
+
+# Environment files
+.env
