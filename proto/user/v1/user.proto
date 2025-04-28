@@ -1,0 +1,55 @@
+// proto/user/v1/user.proto
+syntax = "proto3";
+
+package user.v1;
+
+// Update the Go package path for the generated code.
+option go_package = "github.com/BSantosCoding/grpc-go-example/gen/proto/user/v1;userpb";
+
+// The User service definition.
+service UserService {
+  // Creates a new user
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+  // Retrieves a user by ID
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {}
+  // Lists all users (simple version, no pagination)
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {}
+  // You could add UpdateUser, DeleteUser etc. here later
+}
+
+// Represents a User resource
+message User {
+  string id = 1;         // Unique identifier (e.g., UUID)
+  string name = 2;
+  string email = 3;
+  // google.protobuf.Timestamp created_at = 4; // Example: Add timestamps later if needed
+}
+
+// Request message for creating a user. ID is assigned by the server.
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+// Response message after creating a user. Contains the full user object.
+message CreateUserResponse {
+  User user = 1;
+}
+
+// Request message for getting a user by ID.
+message GetUserRequest {
+  string id = 1; // ID of the user to retrieve
+}
+
+// Response message containing the requested user.
+message GetUserResponse {
+  User user = 1;
+}
+
+// Request message for listing users (currently empty, could add filters/pagination later).
+message ListUsersRequest {}
+
+// Response message containing a list of users.
+message ListUsersResponse {
+  repeated User users = 1; // A list of user objects
+}
