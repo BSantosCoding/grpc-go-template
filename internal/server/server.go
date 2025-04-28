@@ -5,7 +5,6 @@ import (
 	"context"
 	"log"
 
-	// Adjust import paths if necessary
 	userpb "github.com/BSantosCoding/grpc-go-example/gen/user/v1"
 	// Import the interfaces package
 	"github.com/BSantosCoding/grpc-go-example/internal/repository/interfaces"
@@ -14,13 +13,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// UserServer now depends on the UserRepository interface from the sub-package.
 type UserServer struct {
 	userpb.UnimplementedUserServiceServer
-	repo interfaces.UserRepository // Use the interface type from the 'interfaces' package
+	repo interfaces.UserRepository 
 }
 
-// NewUserServer constructor now accepts the interface from the sub-package.
 func NewUserServer(repo interfaces.UserRepository) *UserServer {
 	return &UserServer{
 		repo: repo,

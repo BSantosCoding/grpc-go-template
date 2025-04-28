@@ -1,0 +1,28 @@
+# .dockerignore
+
+# Git files
+.git
+.gitignore
+
+# Docker files
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Go build cache/modules (handled inside Dockerfile)
+vendor/
+bin/
+tmp/
+
+# Environment files (should be injected, not baked in)
+.env
+.env.example
+
+# Logs and temporary files
+*.log
+*.test
+*.out
+
+# OS specific files
+.DS_Store
+Thumbs.db

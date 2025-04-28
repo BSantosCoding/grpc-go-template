@@ -13,6 +13,8 @@ import (
 
 	// Adjust import paths if necessary
 	userpb "github.com/BSantosCoding/grpc-go-example/gen/user/v1"
+	"github.com/BSantosCoding/grpc-go-example/internal/config"
+
 	// "github.com/BSantosCoding/grpc-go-example/internal/repository" // No longer needed directly here
 	// "github.com/BSantosCoding/grpc-go-example/internal/server" // No longer needed directly here
 
@@ -39,7 +41,7 @@ const (
 
 func main() {
 	// --- Load Configuration ---
-	config, err := LoadConfig()
+	config, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
@@ -74,7 +76,6 @@ func main() {
 	// Register the service implementation with the gRPC server
 	userpb.RegisterUserServiceServer(grpcServer, userSrv)
 
-	// Optional: Register reflection service
 	reflection.Register(grpcServer)
 	log.Println("gRPC reflection registered.")
 

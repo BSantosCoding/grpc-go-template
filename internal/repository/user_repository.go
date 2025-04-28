@@ -1,33 +1,27 @@
-// internal/repository/user_repository.go
-package repository // Package remains 'repository'
+package repository
 
 import (
 	"context"
 	"database/sql"
-	"log" // Or a proper logger
+	"log"
 
-	// Adjust import paths if necessary
 	userpb "github.com/BSantosCoding/grpc-go-example/gen/user/v1"
 	// Import the interfaces package
 	"github.com/BSantosCoding/grpc-go-example/internal/repository/interfaces"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq" // Keep the driver import needed for implementation details (like error checking)
+	"github.com/lib/pq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // userRepository implements the interfaces.UserRepository interface using PostgreSQL.
-// The struct name itself can still indicate the underlying tech if desired, or be generic.
-// Let's keep it generic here as requested.
 type userRepository struct {
 	db *sql.DB
 }
 
 // NewUserRepository creates a new repository instance.
-// It returns the interface type defined in the 'interfaces' sub-package.
-// The function name is now generic.
 func NewUserRepository(db *sql.DB) interfaces.UserRepository {
 	return &userRepository{db: db}
 }

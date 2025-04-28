@@ -1,0 +1,49 @@
+# docker-compose.yml
+version: '3.8' # Use a recent version
+
+services:
+  # Go Application Service
+  app:
+    build:
+      context: . # Use the current directory for build context
+      dockerfile: Dockerfile # Specify the Dockerfile name
+    container_name: grpc_app_server
+    ports:
+      - '50051:50051' # Map host port 50051 to container port 50051
+    env_file:
+      - .env # Load variables from .env file
+    environment:
+      # Override PGHOST to use the service name 'db'
+      PGHOST: db
+      # Construct DATABASE_URL using variables loaded from .env
+      # The Go app will use this if set, otherwise it constructs from PG* vars
+      DATABASE_URL: postgresql://${PGUSER}:${PGPASSWORD}@db:5432/${DBNAME}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy # Wait for db to be healthy before starting app
+    restart: unless-stopped
+
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine # Use official Postgres image (Alpine version is smaller)
+    container_name: grpc_postgres_db
+    ports:
+      - '5432:5432' # Map host port 5432 to container port 5432 (for external tools/debugging)
+    env_file:
+      - .env # Load variables from .env file (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+    environment:
+      # Map .env variables to required Postgres env vars
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_DB: ${DBNAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data # Persist data using a named volume
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${PGUSER} -d ${DBNAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data: # Define the named volume
