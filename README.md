@@ -2,6 +2,8 @@
 
 A sample project demonstrating a gRPC API in Go for managing users. This project features a structured layout, PostgreSQL integration, database migrations using `golang-migrate`, Docker support, configuration via `.env` files, dependency injection, and integration tests.
 
+Repository to experiment and learn about gRPC APIs in Go.
+
 ## Features
 
 - gRPC API for User CRUD-like operations (Create, Get, List).
